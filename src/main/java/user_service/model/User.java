@@ -20,9 +20,9 @@ public class User {
     @Column(nullable = false)
     public String password;
 
-    @OneToOne(mappedBy = "user", orphanRemoval = true, cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @PrimaryKeyJoinColumn
-    public Address address;
+    private Address address;
 
     protected User() {
     }
@@ -49,6 +49,9 @@ public class User {
         this.address = address;
     }
 
+    public Address getAddress() {
+        return this.address;
+    }
 
     @Override
     public String toString() {
