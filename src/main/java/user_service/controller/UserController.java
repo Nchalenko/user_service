@@ -28,9 +28,18 @@ public class UserController {
     @Autowired
     private ProducerService producerService;
 
-    @GetMapping("/")
+    @GetMapping
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    @GetMapping("/filter")
+    public List<User> getUsersByCountry(@RequestParam(name = "country") String country) {
+    List<Address> addresses = addressRepository.findByCountry(country);
+
+        List<Long> userIds = addresses.stream().map(Address::getUserId).collect(Collectors.toList());
+
+        return userRepository.findByIdIn(userIds);
     }
 
     @GetMapping("/{id}")
@@ -38,17 +47,7 @@ public class UserController {
         return userRepository.findById(id);
     }
 
-    @GetMapping("/by_country/{country}")
-    public List<User> getUsersByCountry(@PathVariable(value = "country") String country) {
-        List<Address> addresses = addressRepository.findByCountry(country);
-
-        List<Long> userIds = addresses.stream().map(Address::getUserId).collect(Collectors.toList());
-
-        // TODO-nik change to one query
-        return userRepository.findByIdIn(userIds);
-    }
-
-    @PostMapping(value = "/add", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public User addUser(@RequestBody User user) {
         user.getAddress().setUser(user);
@@ -60,8 +59,15 @@ public class UserController {
         return userRepository.findById(userCreated.id);
     }
 
-    @DeleteMapping("/delete/{id}")
-    public void deleteUser(@PathVariable(value = "id") Long id) {
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public void deleteUser(@PathVariable(value = "id") Long id) throws NotFoundException {
+        Optional<User> userRepo = Optional.ofNullable(userRepository.findById(id));
+
+        if (!userRepo.isPresent()) {
+            throw new NotFoundException("User with ID: " + id + " Not found");
+        }
+
         userRepository.deleteById(id);
 
         producerService.produce(new Message("User with ID: " + id + " was removed", 100));
